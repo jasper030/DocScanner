@@ -1,0 +1,7 @@
+.git
+.venv
+.python-version
+__pycache__
+*.egg-info/
+
+data/

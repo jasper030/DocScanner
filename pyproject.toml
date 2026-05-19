@@ -1,0 +1,16 @@
+[project]
+name = "doc-scanner"
+version = "0.1.0"
+description = "A document scanning application for image processing course."
+readme = "README.md"
+requires-python = ">=3.13"
+dependencies = [
+    "opencv-python>=4.13.0.92",
+    "numpy",
+]
+
+[project.scripts]
+doc-scanner = "doc_scanner.__main__:main"
+
+[tool.setuptools.packages.find]
+where = ["src"]
