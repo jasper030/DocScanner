@@ -1,14 +1,51 @@
 import cv2
 import numpy as np
+from dataclasses import dataclass
 
-from numpy.typing import NDArray
+from doc_scanner import types
 from doc_scanner.utils import filters
 
-def process_text_image(image: NDArray[np.uint8]):
-    otsu_img = filters.otsu_threshold(image)
-    adaptive_img = filters.adaptive_threshold(image)
+@dataclass
+class TextProcessingResult:
+    otsu: types.Image
+    adaptive: types.Image
+    cleaned: types.Image
 
-    kernel = np.ones((3,3), np.uint8)
-    open_img, close_img = filters.apply_morphology(image, kernel)
+def binarize_for_text(image: types.Image, method: str = "adaptive") -> types.Image:
+    """
+    Binarize an image optimized for text readability.
+    """
+    if len(image.shape) == 3:
+        image = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
+    
+    if method == "otsu":
+        return filters.otsu_threshold(image)
+    else:
+        # Adaptive is usually better for varying lighting
+        return filters.adaptive_threshold(image)
 
-    return otsu_img, adaptive_img, open_img, close_img
+def clean_text_image(image: types.Image, kernel_size: int = 2) -> types.Image:
+    """
+    Apply morphological cleaning to a binarized text image.
+    """
+    # Small opening to remove noise
+    cleaned = filters.apply_morphology(image, kernel_size=(kernel_size, kernel_size), op=cv2.MORPH_OPEN)
+    return cleaned
+
+def process_text_image(image: types.Image) -> TextProcessingResult:
+    """
+    Process image to extract text using multiple methods.
+    """
+    gray = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY) if len(image.shape) == 3 else image
+    
+    otsu_img = filters.otsu_threshold(gray)
+    adaptive_img = filters.adaptive_threshold(gray)
+    
+    # Cleaned adaptive version
+    cleaned = clean_text_image(adaptive_img)
+
+    return TextProcessingResult(
+        otsu=otsu_img,
+        adaptive=adaptive_img,
+        cleaned=cleaned
+    )

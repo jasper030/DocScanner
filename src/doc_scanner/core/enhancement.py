@@ -1,73 +1,44 @@
 import cv2
 import numpy as np
 
+from doc_scanner import types
+from doc_scanner.utils import filters
 
-def gaussian_denoise(img, kernel_size=(5, 5)):
+def denoise_image(image: types.Image, method: str = "gaussian", kernel_size: int = 5) -> types.Image:
     """
-    Gaussian Blur for noise reduction
+    Apply denoising to the image.
+    Methods: 'gaussian', 'median', 'bilateral'
     """
-    return cv2.GaussianBlur(img, kernel_size, 0)
+    if method == "gaussian":
+        return cv2.GaussianBlur(image, (kernel_size, kernel_size), 0)
+    elif method == "median":
+        return cv2.medianBlur(image, kernel_size)
+    elif method == "bilateral":
+        return cv2.bilateralFilter(image, 9, 75, 75)
+    return image
 
-
-def median_denoise(img, kernel_size=5):
+def enhance_image(
+    image: types.Image,
+    denoise_method: str = "gaussian",
+    denoise_kernel: int = 5,
+    use_clahe: bool = True,
+    use_sharpen: bool = False
+) -> types.Image:
     """
-    Median Blur for salt-and-pepper noise reduction
+    Complete enhancement pipeline.
     """
-    return cv2.medianBlur(img, kernel_size)
+    processed = image.copy()
 
+    # 1. Denoise
+    if denoise_method:
+        processed = denoise_image(processed, method=denoise_method, kernel_size=denoise_kernel)
 
-def apply_clahe(img, clip_limit=2.0, tile_grid_size=(8, 8)):
-    """
-    Apply CLAHE for local contrast enhancement
-    """
+    # 2. Contrast Enhancement
+    if use_clahe:
+        processed = filters.apply_clahe(processed)
 
-    # Convert to grayscale if needed
-    if len(img.shape) == 3:
-        gray = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
-    else:
-        gray = img
-
-    clahe = cv2.createCLAHE(
-        clipLimit=clip_limit,
-        tileGridSize=tile_grid_size
-    )
-
-    return clahe.apply(gray)
-
-
-def sharpen(img):
-    """
-    Sharpen image using kernel filter
-    """
-
-    kernel = np.array([
-        [0, -1, 0],
-        [-1, 5, -1],
-        [0, -1, 0]
-    ])
-
-    return cv2.filter2D(img, -1, kernel)
-
-
-def enhance_image(img,
-                  denoise_method="gaussian",
-                  use_sharpen=False):
-    """
-    Complete enhancement pipeline
-    """
-
-    # Denoising
-    if denoise_method == "gaussian":
-        img = gaussian_denoise(img)
-
-    elif denoise_method == "median":
-        img = median_denoise(img)
-
-    # CLAHE enhancement
-    img = apply_clahe(img)
-
-    # Optional sharpening
+    # 3. Sharpening
     if use_sharpen:
-        img = sharpen(img)
+        processed = filters.sharpen(processed)
 
-    return img
+    return processed

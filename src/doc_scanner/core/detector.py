@@ -1,21 +1,33 @@
 import cv2
 import numpy as np
+from dataclasses import dataclass
+
 from doc_scanner import config
+from doc_scanner import types
 from doc_scanner.utils.image import resize_keep_aspect
 from doc_scanner.utils.geometry import four_point_transform
 
-def detect_document(image_path):
+@dataclass
+class DetectionResult:
+    original: types.Image
+    resized: types.Image
+    edged: types.Image
+    contour: types.Contour
+    warped: types.Image
+
+def detect_document(image_path: str) -> DetectionResult:
     """
-    Detects a document in an image and returns the warped result.
+    Detects a document in an image and returns the warped result and intermediate steps.
     """
     image = cv2.imread(str(image_path))
     if image is None:
         raise ValueError(f"Image not found at: {image_path}")
 
     original = image.copy()
+
     resized, ratio = resize_keep_aspect(image, width=config.RESIZE_WIDTH)
 
-    # Image Processing Pipeline
+    # Image Processing Pipeline for Detection
     gray = cv2.cvtColor(resized, cv2.COLOR_BGR2GRAY)
     blurred = cv2.GaussianBlur(gray, config.GAUSSIAN_BLUR_KERNEL, 0)
     edged = cv2.Canny(blurred, config.CANNY_LOW, config.CANNY_HIGH)
@@ -48,10 +60,16 @@ def detect_document(image_path):
             break
 
     if document_contour is None:
-        raise RuntimeError("Could not find document contour.")
+        raise RuntimeError("Could not find document contour. Try a clearer image or different lighting.")
 
     # Scale contour back to original image size
     document_contour_original = document_contour.reshape(4, 2) / ratio
     warped = four_point_transform(original, document_contour_original)
 
-    return resized, edged, document_contour, warped
+    return DetectionResult(
+        original=original,
+        resized=resized,
+        edged=edged,
+        contour=document_contour,
+        warped=warped
+    )
