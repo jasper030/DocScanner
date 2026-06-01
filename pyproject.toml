@@ -14,3 +14,11 @@ doc-scanner = "doc_scanner.__main__:main"
 
 [tool.setuptools.packages.find]
 where = ["src"]
+
+[tool.pyright]
+typeCheckingMode = "strict"
+reportMissingTypeStubs = "none"
+reportUnknownMemberType = "none"
+reportUnknownVariableType = "none"
+reportUnknownMemberType = "none"
+reportUnknownArgumentType = "none"
