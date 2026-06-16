@@ -1,3 +1,7 @@
+[build-system]
+requires = ["setuptools>=61.0"]
+build-backend = "setuptools.build_meta"
+
 [project]
 name = "doc-scanner"
 version = "0.1.0"
@@ -15,10 +19,12 @@ doc-scanner = "doc_scanner.__main__:main"
 [tool.setuptools.packages.find]
 where = ["src"]
 
+[tool.uv]
+package = true
+
 [tool.pyright]
 typeCheckingMode = "strict"
 reportMissingTypeStubs = "none"
 reportUnknownMemberType = "none"
 reportUnknownVariableType = "none"
-reportUnknownMemberType = "none"
 reportUnknownArgumentType = "none"
