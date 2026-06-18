@@ -6,6 +6,8 @@ from doc_scanner.core.enhancement import enhance_image
 from doc_scanner.core.process_text import binarize_for_text
 from doc_scanner.utils import filters
 from doc_scanner import config
+from doc_scanner.core.OCR_evaluation import ocr, text_accuracy, image_metrics
+from doc_scanner.core.OCR_evaluation import plot_image
 
 def main():
     parser = argparse.ArgumentParser(description="Document Scanner CLI (Advanced Pipeline)")
@@ -149,6 +151,51 @@ def main():
             cv2.waitKey(0)
             cv2.destroyAllWindows()
 
+        # OCR + acc
+        img_ocr = cv2.imread(f"{output_path}", cv2.IMREAD_GRAYSCALE)
+        output_text = ocr(img_ocr)
+        
+        img_ocr = cv2.imread(f"{input_path}", cv2.IMREAD_GRAYSCALE)
+        input_text = ocr(img_ocr)
+        
+        _ = detect_document(str(input_path))
+        image = _.warped
+        img_ocr = cv2.cvtColor(image, cv2.IMREAD_GRAYSCALE)
+        A_text = ocr(img_ocr)
+        
+        st = f"{input_path}".split('\\')
+        test = st[-1][:-4]
+        
+        with open(f"data/eval/ground_truth/{test}.txt", "r", encoding="utf-8") as f:
+            ground_truth = f.read()
+            
+        output_acc = text_accuracy(output_text, ground_truth)
+        input_acc = text_accuracy(input_text, ground_truth)
+        A_acc = text_accuracy(A_text, ground_truth)
+        print(f'output_acc = {output_acc}')
+        print(f'input_acc = {input_acc}')
+        print(f'A_acc = {A_acc}')
+        
+        
+        # psnr + ssim
+        im = image_metrics(image, final_image)
+        print(im)
+        with open(f"data/eval/metrics/{test}.txt", "w", encoding="utf-8") as file:
+            file.write(f"psnr: {im['psnr']}\n")
+            file.write(f"ssim: {im['ssim']}")
+        
+        stages = {
+            "1. Original": cv2.imread(f"{input_path}"),
+            "2. Ours": cv2.imread(f"{output_path}")
+        }
+        
+        acc_text = [
+            f'original_acc = {input_acc}', 
+            f'ours_acc = {output_acc}'
+        ]
+        
+        plot_image(stages, acc_text, f"data/eval/plot/{test}.jpg")
+        
     except Exception as e:
         print(f"Error: {e}")
         if args.debug:
